@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Booth App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Photo Booth</h1>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="relative w-full max-w-2xl mx-auto bg-black rounded-lg overflow-hidden">
+                <video id="video" class="w-full block rounded-lg"></video>
+                <canvas id="canvas" class="hidden absolute inset-0 rounded-lg"></canvas>
+                <div id="countdown" class="hidden absolute inset-0 flex items-center justify-center text-6xl font-bold text-white text-shadow"></div>
+            </div>
+            
+            <div class="flex flex-wrap justify-center gap-3 mt-6">
+                <button id="startBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition">Start Camera</button>
+                <button id="captureBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>Take Photo</button>
+                <button id="filterBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded-md transition">Apply Filter</button>
+                <button id="downloadBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>Download</button>
+            </div>
+            
+            <div id="filters" class="hidden flex flex-wrap justify-center gap-2 mt-4">
+                <button class="filter-btn bg-purple-500 hover:bg-purple-600 text-white font-medium py-1 px-3 rounded-md text-sm transition" data-filter="normal">Normal</button>
+                <button class="filter-btn bg-purple-500 hover:bg-purple-600 text-white font-medium py-1 px-3 rounded-md text-sm transition" data-filter="grayscale">Grayscale</button>
+                <button class="filter-btn bg-purple-500 hover:bg-purple-600 text-white font-medium py-1 px-3 rounded-md text-sm transition" data-filter="sepia">Sepia</button>
+                <button class="filter-btn bg-purple-500 hover:bg-purple-600 text-white font-medium py-1 px-3 rounded-md text-sm transition" data-filter="invert">Invert</button>
+            </div>
+        </div>
+        
+        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
