@@ -36,11 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initCamera() {
         try {
             stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: 'user' },
+                video: { facingMode: { exact: 'environment' } }, // ใช้กล้องหลังแทน
                 audio: false
             });
-            
-            video.srcObject = stream;
+                    video.srcObject = stream;
             
             // Set canvas size after video metadata loads
             video.onloadedmetadata = () => {
