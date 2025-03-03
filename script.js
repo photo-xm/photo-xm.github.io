@@ -19,8 +19,72 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentFilter = 'normal';
     let photosTaken = [];
     
+    // Flag to check if this is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Set camera constraints based on device
+    const cameraConstraints = {
+        video: {
+            facingMode: isMobile ? "environment" : "user", // Use back camera on mobile by default
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+        },
+        audio: false
+    };
+    
+    // Check if camera API is supported
+    function checkCameraSupport() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            cameraStatus.textContent = 'กล้องไม่รองรับในเบราว์เซอร์นี้';
+            cameraStatus.classList.remove('bg-black');
+            cameraStatus.classList.add('bg-red-500');
+            startBtn.disabled = true;
+            startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            alert('เบราว์เซอร์ของคุณไม่รองรับการใช้งานกล้อง กรุณาลองใช้ Chrome, Firefox หรือ Safari เวอร์ชั่นล่าสุด');
+            return false;
+        }
+        return true;
+    }
+    
+    // Add mobile camera toggle button
+    if (isMobile) {
+        const cameraToggle = document.createElement('button');
+        cameraToggle.innerHTML = `
+            <span class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                สลับกล้อง
+            </span>
+        `;
+        cameraToggle.className = 'bg-secondary-500 hover:bg-secondary-600 text-white font-medium py-2.5 px-5 rounded-lg transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-secondary-600 focus:ring-opacity-50 shadow-md';
+        cameraToggle.addEventListener('click', toggleCamera);
+        
+        // Insert after start button
+        startBtn.parentNode.insertBefore(cameraToggle, startBtn.nextSibling);
+    }
+    
+    // Toggle between front and back camera (mobile only)
+    function toggleCamera() {
+        if (!stream) return;
+        
+        // Stop current stream
+        stream.getTracks().forEach(track => track.stop());
+        
+        // Toggle camera facing mode
+        cameraConstraints.video.facingMode = cameraConstraints.video.facingMode === "user" ? "environment" : "user";
+        
+        // Restart camera with new constraints
+        initCamera();
+    }
+    
     // Event Listeners
-    startBtn.addEventListener('click', initCamera);
+    startBtn.addEventListener('click', () => {
+        if (checkCameraSupport()) {
+            initCamera();
+        }
+    });
     captureBtn.addEventListener('click', startCountdown);
     filterBtn.addEventListener('click', toggleFilters);
     downloadBtn.addEventListener('click', downloadPhoto);
@@ -37,12 +101,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the camera
     async function initCamera() {
         try {
-            stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: 'user' },
-                audio: false
-            });
+            // Stop any existing stream
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Get new camera stream
+            stream = await navigator.mediaDevices.getUserMedia(cameraConstraints);
             
             video.srcObject = stream;
+            video.play();
             
             // Set canvas size after video metadata loads
             video.onloadedmetadata = () => {
@@ -58,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Update camera status
                 cameraStatus.textContent = 'กำลังทำงาน';
-                cameraStatus.classList.remove('bg-black');
+                cameraStatus.classList.remove('bg-black', 'bg-red-500');
                 cameraStatus.classList.add('bg-green-500');
                 
                 // Play animation effect
@@ -71,7 +139,17 @@ document.addEventListener('DOMContentLoaded', () => {
             cameraStatus.classList.remove('bg-black');
             cameraStatus.classList.add('bg-red-500');
             
-            alert('ไม่สามารถเข้าถึงกล้องได้ กรุณาตรวจสอบว่าคุณได้อนุญาตให้เข้าถึงกล้องแล้ว');
+            let errorMsg = 'ไม่สามารถเข้าถึงกล้องได้';
+            
+            if (error.name === 'NotAllowedError') {
+                errorMsg += ' กรุณาอนุญาตให้เว็บไซต์เข้าถึงกล้องของคุณ';
+            } else if (error.name === 'NotFoundError') {
+                errorMsg += ' ไม่พบกล้องบนอุปกรณ์ของคุณ';
+            } else if (error.name === 'NotReadableError') {
+                errorMsg += ' กล้องของคุณอาจถูกใช้งานโดยแอปอื่นอยู่';
+            }
+            
+            alert(errorMsg);
         }
     }
     
@@ -187,15 +265,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const actions = document.createElement('div');
         actions.className = 'absolute inset-x-0 bottom-0 p-3 flex justify-around opacity-0 hover:opacity-100 transition-opacity duration-300';
         
-        const downloadBtn = document.createElement('button');
-        downloadBtn.innerHTML = `
+        const photoDownloadBtn = document.createElement('button');
+        photoDownloadBtn.innerHTML = `
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             บันทึก
         `;
-        downloadBtn.className = 'bg-primary-500 hover:bg-primary-600 text-white text-xs py-1.5 px-3 rounded-lg transition flex items-center';
-        downloadBtn.addEventListener('click', (e) => {
+        photoDownloadBtn.className = 'bg-primary-500 hover:bg-primary-600 text-white text-xs py-1.5 px-3 rounded-lg transition flex items-center';
+        photoDownloadBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             downloadSinglePhoto(imageSrc);
         });
@@ -238,14 +316,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 300);
         });
         
-        actions.appendChild(downloadBtn);
+        actions.appendChild(photoDownloadBtn);
         actions.appendChild(deleteBtn);
         
         photoItem.appendChild(img);
         photoItem.appendChild(overlay);
         photoItem.appendChild(actions);
         
-        gallery.appendChild(photoItem);
+        gallery.insertBefore(photoItem, gallery.firstChild);
         
         // Trigger animation
         setTimeout(() => {
@@ -348,13 +426,82 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Download single photo with notification
+    // Download single photo
     function downloadSinglePhoto(imageSrc) {
+        // For mobile devices, open image in new tab as download might not work
+        if (isMobile) {
+            const newTab = window.open();
+            newTab.document.write(`<img src="${imageSrc}" alt="Photo" style="max-width: 100%;">`);
+            newTab.document.write('<p>กดค้างที่รูปภาพแล้วเลือก "บันทึกรูปภาพ" เพื่อดาวน์โหลด</p>');
+            return;
+        }
+        
         const link = document.createElement('a');
         link.href = imageSrc;
         link.download = `photo_${new Date().getTime()}.png`;
         link.click();
         
         // Show a small notification
+        showNotification('ดาวน์โหลดภาพสำเร็จ!', 'success');
+    }
+    
+    // Download all photos as ZIP
+    function downloadPhoto() {
+        if (photosTaken.length === 0) return;
+        
+        // For mobile devices
+        if (isMobile && photosTaken.length === 1) {
+            downloadSinglePhoto(photosTaken[0].src);
+            return;
+        }
+        
+        if (photosTaken.length === 1) {
+            // If only one photo, just download it directly
+            downloadSinglePhoto(photosTaken[0].src);
+            return;
+        }
+        
+        // For multiple photos on desktop, create a notification
+        showNotification(`กำลังเตรียมดาวน์โหลดภาพ ${photosTaken.length} ภาพ...`, 'info');
+        
+        // Download images one by one with a small delay
+        photosTaken.forEach((photo, index) => {
+            setTimeout(() => {
+                const link = document.createElement('a');
+                link.href = photo.src;
+                link.download = `photo_${index+1}_${new Date().getTime()}.png`;
+                link.click();
+            }, index * 1000); // 1 second delay between downloads
+        });
+    }
+    
+    // Show notification
+    function showNotification(message, type = 'info') {
         const notification = document.createElement('div');
-        notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-
+        notification.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg transition-opacity duration-300 z-50 ${
+            type === 'success' ? 'bg-green-500 text-white' : 
+            type === 'error' ? 'bg-red-500 text-white' : 
+            'bg-blue-500 text-white'
+        }`;
+        notification.innerHTML = message;
+        
+        // Add to DOM
+        document.body.appendChild(notification);
+        
+        // Fade in
+        setTimeout(() => {
+            notification.style.opacity = '1';
+        }, 10);
+        
+        // Fade out and remove
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
+    }
+    
+    // Initialize by checking camera support
+    checkCameraSupport();
+});
